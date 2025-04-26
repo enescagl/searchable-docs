@@ -1,0 +1,27 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Tech Stack
+
+Searchable Docs uses the following technologies:
+
+## Frontend
+- **Nuxt.js 3**: Vue-based framework ([nuxt.config.ts](mdc:nuxt.config.ts))
+- **Vue.js 3**: Progressive JavaScript framework
+- **TailwindCSS**: Utility-first CSS framework
+
+## Backend
+- **Nuxt.js Server API**: API routes in [server/api/](mdc:server/api)
+- **Node.js**: JavaScript runtime
+
+## Database
+- **SQLite**: Via libsql/client ([server/db/client.ts](mdc:server/db/client.ts))
+- **Drizzle ORM**: SQL toolkit and ORM ([drizzle.config.ts](mdc:drizzle.config.ts))
+
+## Search & Processing
+- **BullMQ/Redis**: Job queue processing ([server/services/job-queue.ts](mdc:server/services/job-queue.ts))
+- **Ollama**: Local embedding model ([server/services/ollama.ts](mdc:server/services/ollama.ts))
+- **Octokit**: GitHub API integration
+- **Vector Search**: Semantic search with embeddings ([server/services/embedding.ts](mdc:server/services/embedding.ts))

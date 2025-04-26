@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Overview
+
+Searchable Docs is a web application that provides semantic search capabilities for code repositories. It fetches code from GitHub repositories, processes the content, generates embeddings, and enables users to search through the codebase using natural language queries.
+
+## Main Components
+
+- **Frontend**: Nuxt.js 3 application with pages in [pages/](mdc:pages)
+- **Backend**: Server API routes in [server/api/](mdc:server/api)
+- **Database**: SQLite with Drizzle ORM, schema in [server/db/schema.ts](mdc:server/db/schema.ts)
+- **Services**: Core functionality in [server/services/](mdc:server/services)
+
+## Key Entry Points
+
+- Main application: [app.vue](mdc:app.vue)
+- Homepage: [pages/index.vue](mdc:pages/index.vue)
+- Database schema: [server/db/schema.ts](mdc:server/db/schema.ts)
+- Search API: [server/api/search.ts](mdc:server/api/search.ts)

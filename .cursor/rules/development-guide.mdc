@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Development Guide
+
+## Project Setup
+
+1. Install dependencies with `pnpm install`
+2. Create a local database by running scripts in [drizzle/](mdc:drizzle)
+3. Start the development server with `pnpm dev`
+
+## Key Files for Development
+
+- **Configuration**: [nuxt.config.ts](mdc:nuxt.config.ts)
+- **Database Schema**: [server/db/schema.ts](mdc:server/db/schema.ts)
+- **API Routes**: [server/api/](mdc:server/api)
+- **UI Components**: [components/](mdc:components)
+- **Pages**: [pages/](mdc:pages)
+
+## Common Development Tasks
+
+### Adding a New API Endpoint
+1. Create a new file in [server/api/](mdc:server/api)
+2. Implement the endpoint using the `defineEventHandler` function
+3. Add any necessary database operations in [server/db/](mdc:server/db)
+
+### Adding a New UI Component
+1. Create component in [components/](mdc:components)
+2. Import and use in pages or other components
+
+### Adding Database Operations
+1. Update schema if needed in [server/db/schema.ts](mdc:server/db/schema.ts)
+2. Add operations in [server/db/repository.ts](mdc:server/db/repository.ts)
+3. Generate migration with Drizzle if schema changed
+
+### Working with the Job Queue
+1. Job queue configuration and operations in [server/services/job-queue.ts](mdc:server/services/job-queue.ts)
+2. Add new job types and processors as needed

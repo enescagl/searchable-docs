@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Database Structure
+
+The database schema is defined in [server/db/schema.ts](mdc:server/db/schema.ts) and uses SQLite with Drizzle ORM.
+
+## Tables
+
+### Repositories
+Stores information about GitHub repositories:
+- `id`: Primary key
+- `owner`: GitHub repository owner
+- `repo`: GitHub repository name
+- `ref`: Branch or tag reference
+- `createdAt`: Creation timestamp
+- `updatedAt`: Last update timestamp
+- `isProcessed`: Processing status flag
+
+### Documents
+Tracks individual files within repositories:
+- `id`: Primary key
+- `filePath`: Path to the file within the repository
+- `repositoryId`: Foreign key to repositories table
+- `processedAt`: Processing timestamp
+- `isProcessed`: Processing status flag
+
+### Embeddings
+Stores text chunks and their vector embeddings:
+- `id`: Primary key
+- `heading`: Section heading or identifier
+- `text`: The text chunk content
+- `embedding`: Vector embedding as binary blob
+- `documentId`: Foreign key to documents table
+- `createdAt`: Creation timestamp
+
+## Database Operations
+
+Database operations are implemented in [server/db/repository.ts](mdc:server/db/repository.ts) and use the Drizzle ORM client configured in [server/db/client.ts](mdc:server/db/client.ts).

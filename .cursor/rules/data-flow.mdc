@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Data Flow
+
+## Repository Flow
+1. User adds repository via [pages/index.vue](mdc:pages/index.vue)
+2. Request handled by [server/api/repo/](mdc:server/api/repo) endpoints
+3. Repository information stored in database via [server/db/repository.ts](mdc:server/db/repository.ts)
+4. Processing job queued through [server/services/job-queue.ts](mdc:server/services/job-queue.ts)
+5. Files fetched from GitHub using services in [server/services/github/](mdc:server/services/github)
+
+## Processing Flow
+1. Files are chunked by [server/services/chunking.ts](mdc:server/services/chunking.ts)
+2. Text chunks are tokenized via [server/services/tokenizer.ts](mdc:server/services/tokenizer.ts)
+3. Embeddings generated using [server/services/embedding.ts](mdc:server/services/embedding.ts)
+4. Embeddings stored in database using schema from [server/db/schema.ts](mdc:server/db/schema.ts)
+
+## Search Flow
+1. User enters search query in [pages/index.vue](mdc:pages/index.vue)
+2. Query sent to [server/api/search.ts](mdc:server/api/search.ts)
+3. Query embedding created and similarity search performed
+4. Results returned to frontend for display
