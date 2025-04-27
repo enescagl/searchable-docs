@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-  # Development app service
   app-dev:
     profiles: ["dev"]
     build:
@@ -27,7 +26,6 @@ services:
     networks:
       - app-network
 
-  # Production app service
   app:
     profiles: ["prod"]
     build:
@@ -46,7 +44,6 @@ services:
     networks:
       - app-network
 
-  # Database migrations service
   migrator:
     profiles: ["dev", "prod"]
     build:
@@ -64,7 +61,6 @@ services:
     networks:
       - app-network
 
-  # Nginx - used in both dev and prod
   nginx:
     profiles: ["dev", "prod"]
     image: nginx:alpine
@@ -78,7 +74,6 @@ services:
     networks:
       - app-network
 
-  # Redis - used in both dev and prod
   redis:
     profiles: ["dev", "prod"]
     image: redis:alpine
@@ -90,7 +85,6 @@ services:
     networks:
       - app-network
 
-  # LibSQL - used in both dev and prod
   libsql:
     profiles: ["dev", "prod"]
     image: ghcr.io/tursodatabase/libsql-server:latest
@@ -105,7 +99,6 @@ services:
     networks:
       - app-network
 
-  # Drizzle Studio - for development only
   drizzle-studio:
     profiles: ["dev"]
     build:

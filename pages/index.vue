@@ -21,7 +21,7 @@ const debouncedSearch = debouncedRef<string>(searchParam, 250, {
   maxWait: 1000,
 });
 
-const { data, status, execute } = await useFetch<Repository[]>(`/api/search`, {
+const { data, status, refresh } = await useFetch<Repository[]>(`/api/search`, {
   key: debouncedSearch.value,
   query: {
     s: debouncedSearch,
@@ -33,7 +33,7 @@ const addRepository = async () => {
     method: "POST",
     body: { url: repoUrl.value },
   });
-  await execute();
+  await refresh();
 };
 
 const columnHelper = createColumnHelper<Repository>();
