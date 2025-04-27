@@ -39,7 +39,10 @@ const { execute: addRepository, status: addRepositoryStatus } = await useFetch<
   immediate: false,
   lazy: true,
   body: { url: repoUrl.value },
-  onResponse: () => refresh(),
+  onResponse: () => {
+    refresh();
+    searchParam.value = "";
+  },
 });
 
 const columnHelper = createColumnHelper<Repository>();
