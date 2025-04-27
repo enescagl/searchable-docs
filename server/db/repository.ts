@@ -49,7 +49,6 @@ export async function searchEmbeddings(
   );
 
   return result.rows.map((row: unknown) => {
-    // Type casting for row
     const typedRow = row as [string, string, string, ArrayBuffer];
     const embedBuffer = typedRow[3];
     const flatArray = Array.from(new Float32Array(embedBuffer as ArrayBuffer));
@@ -141,7 +140,6 @@ export async function getRepositories(): Promise<Repository[]> {
 export async function getRepositoryBySlug(
   slug: string,
 ): Promise<Repository | undefined> {
-  // Assuming slug is owner/repo format
   const [owner, repo] = slug.split("/");
 
   const result = await db

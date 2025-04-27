@@ -4,19 +4,16 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { consola } from "consola";
 import { sql } from "drizzle-orm";
 
-// Create a LibSQL client with a local file
 const client = createClient({
-  url: process.env.DATABASE_URL || "file:local.db",
+  url: process.env.DATABASE_URL || "http://localhost:8089",
 });
 
-// Create a Drizzle ORM instance (we don't need schema here)
 const db = drizzle(client);
 
 const createVectorIndex = async () => {
   await db.run(sql`
     CREATE INDEX IF NOT EXISTS vector_index
-    ON embeddings(embedding)
-    USING vector_cosine(3)
+    ON embeddings (libsql_vector_idx(embedding));
   `);
 };
 
@@ -26,8 +23,19 @@ async function main(): Promise<void> {
     consola.info("⏳ Running migrations...");
     await migrate(db, { migrationsFolder: "./drizzle" });
     consola.success("✅ Migrations completed successfully");
-    await createVectorIndex();
-    consola.success("✅ Vector index created successfully");
+
+    // Try to create vector index if supported
+    try {
+      consola.info("⏳ Creating vector index...");
+      await createVectorIndex();
+      consola.success("✅ Vector index created successfully");
+    } catch (indexError) {
+      consola.warn(
+        "⚠️ Could not create vector index. This may be expected if your libsql build doesn't support vector extensions or if you're not using a Turso database with vector support.",
+      );
+      consola.debug(indexError);
+    }
+
     process.exit(0);
   } catch (error) {
     consola.error("❌ Migration failed:", error);

@@ -45,8 +45,6 @@ export default function initializeRepositoryQueue() {
 
         consola.info(files);
 
-        // Process each file and create an array of document jobs to be processed
-
         const documentsToProcess = files.map(
           ({ key: filePath, value: fileContent }) => ({
             filePath,
@@ -58,7 +56,6 @@ export default function initializeRepositoryQueue() {
           }),
         );
 
-        // Save all documents first
         for (const doc of documentsToProcess) {
           await saveDocument(doc.filePath, repository.id);
         }
@@ -68,7 +65,6 @@ export default function initializeRepositoryQueue() {
           isProcessed: true,
         });
 
-        // Return the processed files to be used by the document queue
         return {
           success: true,
           fileCount: documentsToProcess.length,
