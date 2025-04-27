@@ -12,7 +12,6 @@ const initializeRepoEvents = () => {
       const { documentsToProcess } = parsedValue;
 
       for (const doc of documentsToProcess) {
-        consola.info(`📄⤵ Queued ${doc.filePath} for processing`);
         await queueDocumentProcessingJob(
           doc.filePath,
           doc.content,
