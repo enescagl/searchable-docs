@@ -21,20 +21,26 @@ const debouncedSearch = debouncedRef<string>(searchParam, 250, {
   maxWait: 1000,
 });
 
-const { data, status, refresh } = await useFetch<Repository[]>(`/api/search`, {
+const {
+  data,
+  status: searchStatus,
+  refresh,
+} = await useFetch<Repository[]>(`/api/search`, {
   key: debouncedSearch.value,
   query: {
     s: debouncedSearch,
   },
 });
 
-const addRepository = async () => {
-  await $fetch("/api/repo/add", {
-    method: "POST",
-    body: { url: repoUrl.value },
-  });
-  await refresh();
-};
+const { execute: addRepository, status: addRepositoryStatus } = await useFetch<
+  Repository[]
+>(`/api/repo/add`, {
+  method: "POST",
+  immediate: false,
+  lazy: true,
+  body: { url: repoUrl.value },
+  onResponse: () => refresh(),
+});
 
 const columnHelper = createColumnHelper<Repository>();
 
@@ -87,7 +93,8 @@ const columns = [
   }),
 ];
 const table = useVueTable({
-  data: status.value === "success" && data.value !== null ? data.value : [],
+  data:
+    searchStatus.value === "success" && data.value !== null ? data.value : [],
   columns,
   getCoreRowModel: getCoreRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
@@ -101,7 +108,12 @@ const table = useVueTable({
   <div class="flex h-full flex-col justify-end gap-4">
     <div class="flex gap-2">
       <Input v-model="repoUrl" placeholder="Repo URL" />
-      <Button @click="addRepository">Add Repository</Button>
+      <Button
+        :disabled="addRepositoryStatus === 'pending'"
+        @click="addRepository"
+      >
+        {{ addRepositoryStatus === "pending" ? "Adding..." : "Add Repository" }}
+      </Button>
     </div>
     <Input v-model="searchParam" placeholder="Search" />
     <Table>
