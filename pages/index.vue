@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Repository } from "~/shared/types";
-import { debouncedRef } from "@vueuse/core";
+import { debouncedRef, useEventSource } from "@vueuse/core";
 import { cn } from "~/lib/utils";
 import { useRouteQuery } from "@vueuse/router";
 import {
@@ -12,7 +12,8 @@ import {
   useVueTable,
   FlexRender,
 } from "@tanstack/vue-table";
-import { Icon, NuxtLink } from "#components";
+import { Button, Icon, NuxtLink } from "#components";
+import { onUnmounted } from "vue";
 
 const searchParam = useRouteQuery<string>("s");
 
@@ -22,7 +23,7 @@ const debouncedSearch = debouncedRef<string>(searchParam, 250, {
 });
 
 const {
-  data,
+  data: searchResult,
   status: searchStatus,
   refresh,
 } = await useFetch<Repository[]>(`/api/search`, {
@@ -32,17 +33,46 @@ const {
   },
 });
 
-const { execute: addRepository, status: addRepositoryStatus } = await useFetch<
-  Repository[]
->(`/api/repo/add`, {
-  method: "POST",
-  immediate: false,
-  lazy: true,
-  body: { url: repoUrl.value },
-  onResponse: () => {
-    refresh();
-    searchParam.value = "";
-  },
+const addRepository = async () => {
+  await $fetch(`/api/repo/add`, {
+    method: "POST",
+    body: { url: repoUrl.value },
+    onResponse: () => {
+      refresh();
+      searchParam.value = "";
+    },
+  });
+};
+
+const startQueue = async (owner: string, repo: string) => {
+  await $fetch(`/api/queue/start`, {
+    method: "POST",
+    body: { owner, repo },
+  });
+};
+
+const { data: ollamaStatus, close } = useEventSource(`/api/embedding/status`);
+
+const ollamaStatusData = computed(() => {
+  try {
+    return ollamaStatus.value
+      ? JSON.parse(ollamaStatus.value)?.data.isReady
+      : false;
+  } catch (error) {
+    console.error("Error parsing Ollama status:", error);
+    return false;
+  }
+});
+
+watch(ollamaStatusData, (newVal) => {
+  if (newVal) {
+    close();
+  }
+});
+
+// Ensure the event source is closed when the component is unmounted
+onUnmounted(() => {
+  close();
 });
 
 const columnHelper = createColumnHelper<Repository>();
@@ -51,6 +81,7 @@ const columns = [
   columnHelper.display({
     id: "name",
     header: "Name",
+    size: 85,
     cell: (props) => {
       return h(
         NuxtLink,
@@ -65,6 +96,7 @@ const columns = [
   columnHelper.display({
     id: "repoName",
     header: "Repo Name",
+    size: 200,
     cell: (props) => `${props.row.original.owner}/${props.row.original.repo}`,
   }),
   columnHelper.accessor("updatedAt", {
@@ -73,6 +105,7 @@ const columns = [
   }),
   columnHelper.accessor("isProcessed", {
     header: "Processed",
+    size: 50,
     cell: (props) =>
       h(
         "div",
@@ -94,10 +127,41 @@ const columns = [
         ],
       ),
   }),
+  columnHelper.display({
+    id: "actions",
+    header: "Actions",
+    size: 50,
+    cell: (props) =>
+      h(
+        "div",
+        {
+          class: "flex items-center justify-center gap-2",
+        },
+        [
+          h(
+            Button,
+            {
+              variant: "outline",
+              size: "sm",
+              onClick: () => {
+                startQueue(props.row.original.owner, props.row.original.repo);
+              },
+            },
+            "Process",
+          ),
+        ],
+      ),
+  }),
 ];
+
+const data = computed(() => {
+  return searchStatus.value === "success" && searchResult.value !== null
+    ? searchResult.value
+    : [];
+});
+
 const table = useVueTable({
-  data:
-    searchStatus.value === "success" && data.value !== null ? data.value : [],
+  data,
   columns,
   getCoreRowModel: getCoreRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
@@ -108,77 +172,84 @@ const table = useVueTable({
 </script>
 
 <template>
-  <div class="flex h-full flex-col justify-end gap-4">
-    <div class="flex gap-2">
-      <Input v-model="repoUrl" placeholder="Repo URL" />
-      <Button
-        :disabled="addRepositoryStatus === 'pending'"
-        @click="addRepository"
-      >
-        {{ addRepositoryStatus === "pending" ? "Adding..." : "Add Repository" }}
-      </Button>
+  <div>
+    <div v-if="!ollamaStatusData">
+      <div>
+        <Icon name="heroicons:check-circle" class="size-4 text-green-500" />
+        <span>Ollama is pulling the model</span>
+      </div>
     </div>
-    <Input v-model="searchParam" placeholder="Search" />
-    <Table>
-      <TableHeader>
-        <TableRow
-          v-for="headerGroup in table.getHeaderGroups()"
-          :key="headerGroup.id"
-        >
-          <TableHead
-            v-for="header in headerGroup.headers"
-            :key="header.id"
-            :data-pinned="header.column.getIsPinned()"
-            :class="
-              cn(
-                { 'bg-background/95 sticky': header.column.getIsPinned() },
-                header.column.getIsPinned() === 'left' ? 'left-0' : 'right-0',
-              )
-            "
+    <div v-else class="flex h-full flex-col justify-end gap-4">
+      <div class="flex gap-2">
+        <Input v-model="repoUrl" placeholder="Repo URL" />
+        <Button @click="addRepository">Add Repository</Button>
+      </div>
+      <Input v-model="searchParam" placeholder="Search" />
+      <Table>
+        <TableHeader>
+          <TableRow
+            v-for="headerGroup in table.getHeaderGroups()"
+            :key="headerGroup.id"
           >
-            <FlexRender
-              v-if="!header.isPlaceholder"
-              :render="header.column.columnDef.header"
-              :props="header.getContext()"
-            />
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <template v-if="table.getRowModel().rows?.length">
-          <template v-for="row in table.getRowModel().rows" :key="row.id">
-            <TableRow :data-state="row.getIsSelected() && 'selected'">
-              <TableCell
-                v-for="cell in row.getVisibleCells()"
-                :key="cell.id"
-                :data-pinned="cell.column.getIsPinned()"
-                :class="
-                  cn(
-                    { 'bg-background/95 sticky': cell.column.getIsPinned() },
-                    cell.column.getIsPinned() === 'left' ? 'left-0' : 'right-0',
-                  )
-                "
-              >
-                <FlexRender
-                  :render="cell.column.columnDef.cell"
-                  :props="cell.getContext()"
-                />
-              </TableCell>
-            </TableRow>
-            <TableRow v-if="row.getIsExpanded()">
-              <TableCell :colspan="row.getAllCells().length">
-                {{ JSON.stringify(row.original) }}
-              </TableCell>
-            </TableRow>
+            <TableHead
+              v-for="header in headerGroup.headers"
+              :key="header.id"
+              :data-pinned="header.column.getIsPinned()"
+              :class="
+                cn(
+                  { 'bg-background/95 sticky': header.column.getIsPinned() },
+                  header.column.getIsPinned() === 'left' ? 'left-0' : 'right-0',
+                )
+              "
+              :style="`width: ${header.column.getSize()}px`"
+            >
+              <FlexRender
+                v-if="!header.isPlaceholder"
+                :render="header.column.columnDef.header"
+                :props="header.getContext()"
+              />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <template v-if="table.getRowModel().rows?.length">
+            <template v-for="row in table.getRowModel().rows" :key="row.id">
+              <TableRow :data-state="row.getIsSelected() && 'selected'">
+                <TableCell
+                  v-for="cell in row.getVisibleCells()"
+                  :key="cell.id"
+                  :data-pinned="cell.column.getIsPinned()"
+                  :class="
+                    cn(
+                      { 'bg-background/95 sticky': cell.column.getIsPinned() },
+                      cell.column.getIsPinned() === 'left'
+                        ? 'left-0'
+                        : 'right-0',
+                    )
+                  "
+                  :style="`width: ${cell.column.getSize()}px`"
+                >
+                  <FlexRender
+                    :render="cell.column.columnDef.cell"
+                    :props="cell.getContext()"
+                  />
+                </TableCell>
+              </TableRow>
+              <TableRow v-if="row.getIsExpanded()">
+                <TableCell :colspan="row.getAllCells().length">
+                  {{ JSON.stringify(row.original) }}
+                </TableCell>
+              </TableRow>
+            </template>
           </template>
-        </template>
 
-        <TableRow v-else>
-          <TableCell :colspan="columns.length" class="h-24 text-center">
-            No results.
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+          <TableRow v-else>
+            <TableCell :colspan="columns.length" class="h-24 text-center">
+              No results.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   </div>
 </template>

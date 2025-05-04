@@ -1,0 +1,33 @@
+FROM node:22-slim AS base
+WORKDIR /app
+
+# Enable pnpm and install minimal requirements
+RUN corepack enable && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends \
+  libc6 \
+  libstdc++6 \
+  openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy only the necessary files
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
+COPY server/db/ ./server/db/
+COPY scripts/migrate.ts ./scripts/migrate.ts
+
+# Create a minimal package.json with scripts and install only the required dependencies
+RUN echo '{"name":"drizzle-migrator-minimal","type":"module","scripts":{"migrate":"tsx scripts/migrate.ts"}}' > package.json && \
+  pnpm install \
+  drizzle-orm@0.42.0 \
+  @libsql/client@0.15.4 \
+  typescript@5.8.3 \
+  tsx@4.19.3 \
+  consola@3.4.2
+
+# Set environment variables
+ENV DATABASE_URL=http://localhost:8089
+ENV PATH="/app/node_modules/.bin:${PATH}"
+
+# Run migrations
+CMD ["pnpm", "run", "migrate"]

@@ -17,11 +17,14 @@ services:
       - DATABASE_URL=http://libsql:8080
       - PORT=3000
       - HOST=0.0.0.0
+      - OLLAMA_BASE_URL=http://ollama:11434
     command: pnpm run dev
     depends_on:
       migrator:
         condition: service_completed_successfully
       redis:
+        condition: service_started
+      ollama:
         condition: service_started
     networks:
       - app-network
@@ -36,10 +39,13 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=http://libsql:8080
+      - OLLAMA_BASE_URL=http://ollama:11434
     depends_on:
       migrator:
         condition: service_completed_successfully
       redis:
+        condition: service_started
+      ollama:
         condition: service_started
     networks:
       - app-network
@@ -48,21 +54,27 @@ services:
     profiles: ["dev", "prod"]
     build:
       context: .
-      target: development
-    volumes:
-      - .:/app
-      - /app/node_modules
+      dockerfile: Dockerfile.migrator
     environment:
       - DATABASE_URL=http://libsql:8080
-    command: sh -c "pnpm run db:migrate || echo 'Migration had errors but continuing anyway'"
     depends_on:
       libsql:
         condition: service_started
     networks:
       - app-network
 
-  nginx:
+  ollama:
     profiles: ["dev", "prod"]
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+
+  nginx:
+    profiles: ["prod"]
     image: nginx:alpine
     ports:
       - "8080:80"
@@ -70,7 +82,20 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./public:/usr/share/nginx/html
     depends_on:
-      - ${APP_SERVICE:-app}
+      - app
+    networks:
+      - app-network
+
+  nginx-dev:
+    profiles: ["dev"]
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./public:/usr/share/nginx/html
+    depends_on:
+      - app-dev
     networks:
       - app-network
 
@@ -88,7 +113,6 @@ services:
   libsql:
     profiles: ["dev", "prod"]
     image: ghcr.io/tursodatabase/libsql-server:latest
-    platform: linux/amd64
     environment:
       - SQLD_NODE=primary
     volumes:
@@ -103,15 +127,11 @@ services:
     profiles: ["dev"]
     build:
       context: .
-      target: development
-    volumes:
-      - .:/app
-      - /app/node_modules
+      dockerfile: Dockerfile.drizzle-studio
     ports:
       - "4983:4983"
     environment:
       - DATABASE_URL=http://libsql:8080
-    command: pnpm drizzle-kit studio --port 4983 --host 0.0.0.0
     depends_on:
       - libsql
     networks:
@@ -124,3 +144,4 @@ networks:
 volumes:
   redis_data:
   libsql_data:
+  ollama_data:

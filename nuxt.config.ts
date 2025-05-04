@@ -4,7 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
-
   modules: [
     "@nuxt/eslint",
     "@nuxt/fonts",
@@ -14,6 +13,7 @@ export default defineNuxtConfig({
     "shadcn-nuxt",
     "@nuxtjs/color-mode",
     "@nuxtjs/mdc",
+    "nuxt-auth-utils",
   ],
   css: ["~/assets/css/tailwind.css"],
   vite: {
@@ -44,6 +44,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    node: true,
     storage: {
       filesystem: {
         driver: "fs",

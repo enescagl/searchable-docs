@@ -1,0 +1,37 @@
+FROM node:22-slim AS base
+WORKDIR /app
+
+# Enable pnpm and install minimal requirements
+RUN corepack enable && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends \
+  libc6 \
+  libstdc++6 \
+  openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy only the necessary files
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
+COPY server/db/ ./server/db/
+
+# Create a minimal package.json with scripts and install only the required dependencies
+RUN echo '{"name":"drizzle-studio-minimal","type":"module","scripts":{"studio":"drizzle-kit studio --port 4983 --host 0.0.0.0"}}' > package.json && \
+  pnpm install \
+  drizzle-orm@0.42.0 \
+  drizzle-kit@0.31.0 \
+  @libsql/client@0.15.4 \
+  typescript@5.8.3 \
+  tsx@4.19.3
+
+# Set environment variables
+ENV DATABASE_URL=http://localhost:8089
+ENV DRIZZLE_STUDIO_PORT=4983
+ENV HOST=0.0.0.0
+ENV PATH="/app/node_modules/.bin:${PATH}"
+
+# Expose the port for Drizzle Studio
+EXPOSE 4983
+
+# Run Drizzle Studio
+CMD ["pnpm", "run", "studio"] 

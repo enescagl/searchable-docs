@@ -1,5 +1,5 @@
 import { Queue, Worker } from "bullmq";
-import { getRepoFilesContents } from "~/server/services/github/repo-unstorage";
+import { getRepoFilesContents } from "~/server/services/github/repo";
 import {
   saveDocument,
   getRepositoryBySlug,

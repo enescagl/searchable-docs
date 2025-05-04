@@ -1,0 +1,46 @@
+# Dependency directories
+node_modules
+.pnpm-store
+
+# Build artifacts
+.nuxt
+dist
+.output
+
+# Local environment files
+.env
+.env.*  
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Database files
+*.db
+
+# System files
+.DS_Store
+*.swp
+*.swo
+
+# Editor/project settings
+.vscode
+.idea
+*.code-workspace
+
+# Git-related
+.git
+.gitignore
+
+# Docker-related (optional if building inside container only)
+docker-compose.yml
+.dockerignore
+Dockerfile
+
+# Tests, coverage and misc
+coverage
+*.test.*
+*.spec.*
+__tests__
+__mocks__

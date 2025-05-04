@@ -1,8 +1,21 @@
 import { addRepository, getRepositoryBySlug } from "~/server/db/repository";
 import { queueRepositoryProcessingJob } from "~/server/services/job/repositories";
+import { AddRepoBodySchema } from "~/shared/validations/add-repo";
 
 export default defineEventHandler(async (event) => {
-  const { url } = await readBody(event);
+  const { data, success, error } = await readValidatedBody(
+    event,
+    AddRepoBodySchema.safeParse,
+  );
+
+  if (!success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: error.message,
+    });
+  }
+
+  const { url } = data;
 
   const repoInfo = url.split("github.com/")[1].split("/");
   const [owner, repo, ..._] = repoInfo;

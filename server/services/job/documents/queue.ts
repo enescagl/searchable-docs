@@ -4,12 +4,45 @@ import {
   saveEmbeddings,
   updateDocumentProcessed,
 } from "~/server/db/repository";
-import { createEmbeddings } from "~/server/services/embedding";
+import { embedText } from "~/server/services/embedding";
 import { hybridChunking } from "~/server/services/chunking";
 import { DOC_QUEUE_NAME } from "../names";
 import { redisConnection } from "../../redis";
 import type { ProcessDocumentJobData } from "./types";
 import { consola } from "consola";
+
+async function createEmbeddings(chunks: { text: string; heading: string }[]) {
+  const results = [];
+  // Process chunks sequentially instead of all at once
+  for (let i = 0; i < chunks.length; i++) {
+    const { text, heading } = chunks[i];
+    try {
+      const embedding = await embedText(text);
+      results.push({
+        heading,
+        text,
+        embedding,
+      });
+    } catch (error) {
+      consola.error(`Error embedding chunk ${i}:`, error);
+      // Wait a bit before retrying
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Try again
+      try {
+        const embedding = await embedText(text);
+        results.push({
+          heading,
+          text,
+          embedding,
+        });
+      } catch (retryError) {
+        consola.error(`Failed retry for chunk ${i}:`, retryError);
+        throw retryError; // Let the job system handle it
+      }
+    }
+  }
+  return results;
+}
 
 export default function initializeDocumentQueue() {
   const documentProcessingQueue = new Queue<ProcessDocumentJobData>(
@@ -61,10 +94,6 @@ export default function initializeDocumentQueue() {
     },
     { connection: redisConnection },
   );
-
-  // documentWorker.on("completed", (job) => {
-  //   consola.info(`✅ Document job ${job.id} completed successfully`);
-  // });
 
   documentWorker.on("failed", (job, error) => {
     consola.error(

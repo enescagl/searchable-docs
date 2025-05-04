@@ -32,13 +32,11 @@ Or use Docker Compose directly:
 
 Development mode:
 ```bash
-export APP_SERVICE=app-dev
 docker compose --profile dev up
 ```
 
 Production mode:
 ```bash
-export APP_SERVICE=app
 docker compose --profile prod up
 ```
 

@@ -1,7 +1,13 @@
-FROM node:22-alpine AS base
+FROM node:22-slim AS base
 WORKDIR /app
 
-RUN corepack enable
+RUN corepack enable && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends \
+  libc6 \
+  libstdc++6 \
+  openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Development stage
 FROM base AS development
@@ -11,7 +17,8 @@ ENV NODE_ENV=development
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install && \
+  pnpm dlx nuxi prepare
 
 # Run development server
 CMD ["pnpm", "run", "dev"]
@@ -33,7 +40,7 @@ COPY . ./
 RUN pnpm run build
 
 # Production stage
-FROM node:22-alpine AS production
+FROM node:22-slim AS production
 WORKDIR /app
 
 # Only `.output` folder is needed from the build stage

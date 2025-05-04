@@ -1,13 +1,36 @@
 import { searchEmbeddings, getRepositoryBySlug } from "~/server/db/repository";
+import { GetRepoQuerySchema } from "~/shared/validations/get-repo";
+import { SearchParamSchema } from "~/shared/validations/search-param";
 
 export default defineEventHandler(async (event) => {
-  const params = getRouterParams(event, { decode: true });
-  const owner = params?.owner;
-  const repo = params?.repo;
-  const { s } = await getQuery(event);
+  const {
+    data: params,
+    success: paramsSuccess,
+    error: paramsError,
+  } = await getValidatedRouterParams(event, GetRepoQuerySchema.safeParse, {
+    decode: true,
+  });
 
-  if (!s) {
-    return [];
+  if (!paramsSuccess) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: paramsError.message,
+    });
+  }
+
+  const { owner, repo } = params;
+
+  const {
+    data: query,
+    success: querySuccess,
+    error: queryError,
+  } = await getValidatedQuery(event, SearchParamSchema.safeParse);
+
+  if (!querySuccess) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: queryError.message,
+    });
   }
 
   const _repo = await getRepositoryBySlug(`${owner}/${repo}`);
@@ -19,5 +42,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return await searchEmbeddings(_repo.id, s as string);
+  if (!query.s) {
+    return [];
+  }
+
+  return await searchEmbeddings(_repo.id, query.s);
 });

@@ -9,21 +9,8 @@ export interface EmbeddingResponse {
 
 export async function embedText(text: string) {
   const response = await ollama.embed({
-    model: "nomic-embed-text",
+    model: "mxbai-embed-large",
     input: text,
   });
   return response.embeddings;
-}
-
-export async function createEmbeddings(
-  chunks: { text: string; heading: string }[],
-) {
-  return Promise.all(
-    chunks.map(async ({ text, heading }, i) => ({
-      id: `chunk_${i}`,
-      heading,
-      text,
-      embedding: await embedText(text),
-    })),
-  );
 }
